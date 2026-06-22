@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Commerce Business Analytics — Case Study Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+/* ── TOKENS ────────────────────────────────────────────────────────── */
+:root{
+  --ink:   #0D0D0F; --ink2: #3A3A42; --ink3: #6B6B78; --ink4: #9999A8;
+  --line:  #E8E8EE; --line2:#F3F3F7;
+  --surf:  #FFFFFF; --surf2:#F8F8FB; --bg:#EEEEF3;
+  --blue:  #1B4FD8; --blue-s:#EEF2FF;
+  --teal:  #0E7C6B; --teal-s:#E6F5F2;
+  --amber: #B45309; --amber-s:#FEF3C7;
+  --red:   #C0392B; --red-s:#FDECEA;
+  --viol:  #6D28D9; --viol-s:#EDE9FE;
+  --green: #166534; --green-s:#DCFCE7;
+  --r8:8px; --r12:12px; --r16:16px;
+  --sh: 0 1px 3px rgba(0,0,0,0.07),0 1px 2px rgba(0,0,0,0.04);
+  --sh-md:0 4px 16px rgba(0,0,0,0.09),0 2px 4px rgba(0,0,0,0.04);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+
+/* ── NAV ──────────────────────────────────────────────────────────── */
+.nav{position:sticky;top:0;z-index:300;height:52px;background:var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 28px;gap:16px}
+.nav-brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+.nav-logo{width:30px;height:30px;background:var(--blue);border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;letter-spacing:-0.02em;flex-shrink:0}
+.nav-name{font-size:14px;font-weight:600;color:#fff;letter-spacing:-0.01em}
+.nav-sep{width:1px;height:18px;background:rgba(255,255,255,0.18);margin:0 4px}
+.nav-sub{font-size:12px;color:rgba(255,255,255,0.45)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-pill{font-size:11px;color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.09);padding:3px 11px;border-radius:20px;white-space:nowrap}
+.nav-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;font-size:12px;font-weight:600;border-radius:6px;border:none;cursor:pointer;transition:background 0.15s,transform 0.1s;white-space:nowrap;background:var(--blue);color:#fff}
+.nav-btn:hover{background:#1641b8}
+.nav-btn:active{transform:scale(0.97)}
+
+/* ── PROJECT OVERVIEW HERO ───────────────────────────────────────── */
+.hero{background:var(--ink);padding:52px 28px 48px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 80% 50%,rgba(27,79,216,0.22) 0%,transparent 70%);pointer-events:none}
+.hero-inner{max-width:1440px;margin:0 auto;position:relative;z-index:1}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(27,79,216,0.28);border:1px solid rgba(27,79,216,0.5);color:#93B4F8;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:4px 12px;border-radius:20px;margin-bottom:20px}
+.hero-dot{width:6px;height:6px;border-radius:50%;background:#93B4F8;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.hero-h1{font-size:clamp(26px,4vw,44px);font-weight:800;color:#fff;letter-spacing:-0.03em;line-height:1.1;margin-bottom:10px}
+.hero-h1 span{color:#93B4F8}
+.hero-sub{font-size:15px;color:rgba(255,255,255,0.5);max-width:560px;line-height:1.6;margin-bottom:36px}
+.hero-focuses{display:flex;flex-wrap:wrap;gap:10px}
+.focus-chip{display:flex;align-items:center;gap:8px;padding:9px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;transition:border-color 0.2s,background 0.2s}
+.focus-chip:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.22)}
+.focus-icon{width:22px;height:22px;border-radius:5px;display:grid;place-items:center;font-size:12px;flex-shrink:0}
+.hero-meta{display:flex;align-items:center;gap:20px;margin-top:36px;padding-top:32px;border-top:1px solid rgba(255,255,255,0.08);flex-wrap:wrap}
+.hero-stat{display:flex;flex-direction:column;gap:2px}
+.hero-stat-val{font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em}
+.hero-stat-lbl{font-size:11px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.06em;font-weight:600}
+.hero-stat-sep{width:1px;height:36px;background:rgba(255,255,255,0.1)}
+
+/* ── TOC NAV BAR ─────────────────────────────────────────────────── */
+.toc-bar{background:var(--surf);border-bottom:1px solid var(--line);padding:0 28px;display:flex;align-items:center;gap:0;overflow-x:auto;scrollbar-width:none;position:sticky;top:52px;z-index:200}
+.toc-bar::-webkit-scrollbar{display:none}
+.toc-link{display:flex;align-items:center;gap:6px;padding:12px 14px;font-size:12px;font-weight:600;color:var(--ink3);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap;transition:color 0.15s,border-color 0.15s}
+.toc-link:hover{color:var(--blue)}
+.toc-link.active{color:var(--blue);border-bottom-color:var(--blue)}
+.toc-num{width:18px;height:18px;border-radius:4px;background:var(--line2);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--ink3)}
+.toc-link.active .toc-num{background:var(--blue-s);color:var(--blue)}
+
+/* ── PAGE BODY ──────────────────────────────────────────────────── */
+.page{max-width:1440px;margin:0 auto;padding:28px 28px 64px}
+
+/* ── FILTER BAR ─────────────────────────────────────────────────── */
+.filter-bar{background:var(--surf);border-radius:var(--r12);padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:24px;box-shadow:var(--sh)}
+.filter-bar-label{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink4);padding-right:4px}
+.filter-bar select{padding:5px 10px;font-size:12px;border:1px solid var(--line);border-radius:6px;background:var(--surf2);color:var(--ink);cursor:pointer;font-weight:500}
+.filter-bar select:focus{outline:none;border-color:var(--blue)}
+.filter-reset{padding:5px 12px;font-size:12px;font-weight:600;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--ink3);cursor:pointer;transition:background 0.12s}
+.filter-reset:hover{background:var(--line2);color:var(--ink)}
+.filter-count{font-size:12px;color:var(--ink4);margin-left:auto;font-weight:500}
+
+/* ── SECTION ─────────────────────────────────────────────────────── */
+.section{margin-bottom:40px;scroll-margin-top:110px}
+.section-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink4);margin-bottom:4px}
+.section-title{font-size:20px;font-weight:800;letter-spacing:-0.025em;color:var(--ink);line-height:1.2}
+.section-desc{font-size:13px;color:var(--ink3);margin-top:3px;max-width:700px}
+.divider{height:1px;background:var(--line);margin:36px 0}
+
+/* ── CARDS ───────────────────────────────────────────────────────── */
+.card{background:var(--surf);border-radius:var(--r12);box-shadow:var(--sh);overflow:hidden}
+.card-body{padding:20px}
+.card-title{font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:14px}
+
+/* ── GRIDS ───────────────────────────────────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.span2{grid-column:span 2}
+
+/* ── KPI STRIP ───────────────────────────────────────────────────── */
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-radius:var(--r12);overflow:hidden;box-shadow:var(--sh)}
+.kpi-cell{background:var(--surf);padding:22px 24px;position:relative}
+.kpi-cell::after{content:'';position:absolute;bottom:0;left:24px;right:24px;height:2px;border-radius:2px}
+.kpi-cell.c-blue::after{background:var(--blue)}
+.kpi-cell.c-teal::after{background:var(--teal)}
+.kpi-cell.c-amber::after{background:var(--amber)}
+.kpi-cell.c-red::after{background:var(--red)}
+.kpi-cell.c-viol::after{background:var(--viol)}
+.kpi-cell.c-green::after{background:var(--green)}
+.kpi-eyebrow{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+.kpi-val{font-size:30px;font-weight:800;letter-spacing:-0.035em;line-height:1}
+.kpi-meta{font-size:12px;color:var(--ink3);margin-top:6px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;gap:3px}
+.badge-up{background:var(--green-s);color:var(--green)}
+.badge-dn{background:var(--red-s);color:var(--red)}
+.badge-neu{background:var(--line2);color:var(--ink3)}
+
+/* ── INSIGHT CARDS ───────────────────────────────────────────────── */
+.insight-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.insight-card{background:var(--surf);border-radius:var(--r8);padding:16px 18px;box-shadow:var(--sh);border-left:3px solid var(--blue);position:relative;overflow:hidden}
+.insight-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:50%;opacity:0.06;transform:translate(20px,-20px)}
+.insight-card.good{border-left-color:var(--teal)}
+.insight-card.good::before{background:var(--teal)}
+.insight-card.warn{border-left-color:var(--amber)}
+.insight-card.warn::before{background:var(--amber)}
+.insight-card.danger{border-left-color:var(--red)}
+.insight-card.danger::before{background:var(--red)}
+.insight-card.info{border-left-color:var(--blue)}
+.insight-card.info::before{background:var(--blue)}
+.insight-label{font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink4);margin-bottom:4px}
+.insight-val{font-size:20px;font-weight:800;letter-spacing:-0.025em;color:var(--ink);line-height:1.1;margin-bottom:5px}
+.insight-desc{font-size:12px;color:var(--ink3);line-height:1.45}
+
+/* ── PERSONA TABLE ───────────────────────────────────────────────── */
+.ptable{width:100%;border-collapse:collapse;font-size:12.5px}
+.ptable th{background:var(--surf2);padding:9px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--line);white-space:nowrap}
+.ptable td{padding:11px 14px;border-bottom:1px solid var(--line2);vertical-align:middle}
+.ptable tbody tr:last-child td{border-bottom:none}
+.ptable tbody tr:hover td{background:var(--surf2);transition:background 0.1s}
+.seg-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:middle;flex-shrink:0}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.mini-bar-wrap{display:flex;align-items:center;gap:6px}
+.mini-bar{flex:1;height:6px;background:var(--line2);border-radius:3px;overflow:hidden;min-width:50px}
+.mini-bar-fill{height:100%;border-radius:3px}
+
+/* ── HEATMAP ─────────────────────────────────────────────────────── */
+.htable{width:100%;border-collapse:collapse}
+.htable th{padding:7px 10px;font-size:10px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:0.05em;text-align:left;white-space:nowrap}
+.htable td{padding:6px 10px;vertical-align:middle}
+.htable td.feat{font-size:12px;font-weight:500;color:var(--ink2);white-space:nowrap;padding-right:14px}
+.hcell{display:inline-flex;align-items:center;justify-content:center;width:100%;padding:5px 8px;border-radius:5px;font-size:12px;font-weight:700;color:#fff;min-height:32px}
+
+/* ── FUNNEL ──────────────────────────────────────────────────────── */
+.funnel-row{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.funnel-lbl{font-size:12px;color:var(--ink2);min-width:160px;text-align:right;font-weight:600}
+.funnel-track{flex:1;background:var(--line2);border-radius:5px;height:42px;overflow:hidden}
+.funnel-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding:0 16px;font-size:12px;font-weight:700;color:#fff;gap:8px}
+.funnel-drop{display:flex;align-items:center;gap:6px;padding:3px 0 6px 174px;font-size:11px;color:var(--red);font-weight:600}
+.stage-cards{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
+.stage-card{flex:1;min-width:130px;background:var(--surf2);border-radius:8px;padding:12px 14px;border-top:3px solid}
+.stage-card-lbl{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink4);margin-bottom:4px}
+.stage-card-val{font-size:22px;font-weight:800;letter-spacing:-0.02em;color:var(--ink)}
+
+/* ── BAR ROWS ────────────────────────────────────────────────────── */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.bar-lbl{font-size:12px;color:var(--ink2);min-width:120px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;background:var(--line2);border-radius:3px;height:20px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+.bar-val{font-size:12px;color:var(--ink3);min-width:52px;text-align:right;font-weight:600}
+
+/* ── REC CARDS ───────────────────────────────────────────────────── */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}
+.rec-card{background:var(--surf);border-radius:var(--r12);padding:22px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:10px;border-top:3px solid}
+.rec-num{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0}
+.rec-head{display:flex;align-items:center;gap:10px}
+.rec-title{font-size:14px;font-weight:700;color:var(--ink);line-height:1.3}
+.rec-body{font-size:13px;color:var(--ink3);line-height:1.55}
+.rec-impact{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:2px;width:fit-content}
+
+/* ── CANVAS WRAP ─────────────────────────────────────────────────── */
+.ch{position:relative;width:100%}
+
+/* ── TOAST ───────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;z-index:999;transition:opacity 0.2s;max-width:320px}
+.toast.show{opacity:1}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────── */
+@media(max-width:1100px){.kpi-strip{grid-template-columns:repeat(2,1fr)}.g4{grid-template-columns:repeat(2,1fr)}#segSummary{grid-template-columns:repeat(3,1fr)!important}}
+@media(max-width:700px){
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .span2{grid-column:span 1}
+  .kpi-strip{grid-template-columns:1fr 1fr}
+  .page,.hero,.toc-bar{padding-left:16px;padding-right:16px}
+  .nav{padding:0 16px}
+  .hero{padding:36px 16px 32px}
+  .funnel-lbl{min-width:100px;font-size:11px}
+  .funnel-drop{padding-left:114px}
+  .stage-cards{flex-direction:column}
+  #segSummary{grid-template-columns:1fr 1fr!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ──────────────────────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-logo">EC</div>
+    <span class="nav-name">E-Commerce Intelligence</span>
+    <div class="nav-sep"></div>
+    <span class="nav-sub">Business Analytics Case Study</span>
+  </div>
+  <div class="nav-right">
+    <div class="nav-pill" id="navBadge">1,000,000 records</div>
+    <button class="nav-btn" onclick="downloadDashboard()">&#8595;&nbsp; Export HTML</button>
+  </div>
+</nav>
+
+<!-- ── PROJECT OVERVIEW HERO ─────────────────────────────────────────── -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow">
+      <span class="hero-dot"></span>
+      Business Analytics Case Study
+    </div>
+    <div class="hero-h1">E-Commerce Shopper<br><span>Behavior &amp; Lifestyle</span></div>
+    <div class="hero-sub">A structured analytics case study examining customer behavior, revenue drivers, and growth opportunities across a 1,000,000-record e-commerce dataset — spanning 8 focus areas using K-Means clustering, Pearson correlation, and funnel decomposition.</div>
+    <div class="hero-focuses">
+      <div class="focus-chip"><div class="focus-icon" style="background:#EEF2FF;color:#1B4FD8">&#128202;</div>Executive KPIs</div>
+      <div class="focus-chip"><div class="focus-icon" style="background:#E6F5F2;color:#0E7C6B">&#128161;</div>Key Insights</div>
+      <div class="focus-chip"><div class="focus-icon" style="background:#EDE9FE;color:#6D28D9">&#128101;</div>Customer Personas</div>
+      <div class="focus-chip"><div class="focus-icon" style="background:#FEF3C7;color:#B45309">&#128200;</div>Revenue Drivers</div>
+      <div class="focus-chip"><div class="focus-icon" style="background:#FDECEA;color:#C0392B">&#128246;</div>Conversion Funnel</div>
+      <div class="focus-chip"><div class="focus-icon" style="background:#FEF3C7;color:#B45309">&#128722;</div>Cart Abandonment</div>
+      <div class="focus-chip"><div class="focus-icon" style="background:#DCFCE7;color:#166534">&#11088;</div>Premium Subscription</div>
+      <div class="focus-chip"><div class="focus-icon" style="background:#F3F3F7;color:#3A3A42">&#128269;</div>Recommendations</div>
+    </div>
+    <div class="hero-meta">
+      <div class="hero-stat"><div class="hero-stat-val" id="hKpi1">—</div><div class="hero-stat-lbl">Avg Monthly Spend</div></div>
+      <div class="hero-stat-sep"></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="hKpi2">—</div><div class="hero-stat-lbl">Conversion Rate</div></div>
+      <div class="hero-stat-sep"></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="hKpi3">—</div><div class="hero-stat-lbl">Cart Abandonment</div></div>
+      <div class="hero-stat-sep"></div>
+      <div class="hero-stat"><div class="hero-stat-val" id="hKpi4">—</div><div class="hero-stat-lbl">Premium Share</div></div>
+      <div class="hero-stat-sep"></div>
+      <div class="hero-stat"><div class="hero-stat-val">1,000,000</div><div class="hero-stat-lbl">Dataset Records</div></div>
+      <div class="hero-stat-sep"></div>
+      <div class="hero-stat"><div class="hero-stat-val">8</div><div class="hero-stat-lbl">Focus Areas</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TABLE OF CONTENTS BAR ──────────────────────────────────────────── -->
+<div class="toc-bar">
+  <a class="toc-link" href="#s1"><span class="toc-num">1</span>KPIs</a>
+  <a class="toc-link" href="#s2"><span class="toc-num">2</span>Key Insights</a>
+  <a class="toc-link" href="#s3"><span class="toc-num">3</span>Customer Personas</a>
+  <a class="toc-link" href="#s4"><span class="toc-num">4</span>Revenue Drivers</a>
+  <a class="toc-link" href="#s5"><span class="toc-num">5</span>Conversion Funnel</a>
+  <a class="toc-link" href="#s6"><span class="toc-num">6</span>Cart Abandonment</a>
+  <a class="toc-link" href="#s7"><span class="toc-num">7</span>Premium Subscription</a>
+  <a class="toc-link" href="#s8"><span class="toc-num">8</span>Recommendations</a>
+</div>
+
+<div class="page">
+
+<!-- ── FILTER BAR ──────────────────────────────────────────────────── -->
+<div class="filter-bar">
+  <div class="filter-bar-label">&#9681; Filters</div>
+  <select id="fGender" onchange="applyFilters()"><option value="">All genders</option><option>Female</option><option>Male</option><option>Non-binary</option><option>Other</option></select>
+  <select id="fCountry" onchange="applyFilters()"><option value="">All countries</option><option>Australia</option><option>Brazil</option><option>Canada</option><option>China</option><option>France</option><option>Germany</option><option>India</option><option>Japan</option><option>UK</option><option>USA</option></select>
+  <select id="fDevice" onchange="applyFilters()"><option value="">All devices</option><option>Mobile</option><option>Desktop</option><option>Tablet</option></select>
+  <select id="fBudget" onchange="applyFilters()"><option value="">All budgets</option><option>Strict</option><option>Moderate</option><option>Loose</option></select>
+  <select id="fCategory" onchange="applyFilters()"><option value="">All categories</option><option>Beauty</option><option>Books</option><option>Electronics</option><option>Fashion</option><option>Groceries</option><option>Home &amp; Kitchen</option><option>Sports</option><option>Toys</option></select>
+  <select id="fPremium" onchange="applyFilters()"><option value="">All tiers</option><option value="1">Premium</option><option value="0">Standard</option></select>
+  <button class="filter-reset" onclick="resetFilters()">&#8635; Reset</button>
+  <span class="filter-count" id="filterCount"></span>
+</div>
+
+<!-- ── S1: EXECUTIVE KPIs ─────────────────────────────────────────── -->
+<div class="section" id="s1">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Section 01 — Executive KPIs</div>
+      <div class="section-title">Executive KPIs</div>
+      <div class="section-desc">Eight business-critical metrics across revenue, engagement, and retention — the top-line view for executive decision-making</div>
+    </div>
+  </div>
+  <div class="kpi-strip">
+    <div class="kpi-cell c-blue"><div class="kpi-eyebrow">Avg Monthly Revenue / User</div><div class="kpi-val" id="k1">—</div><div class="kpi-meta" id="k1m"></div></div>
+    <div class="kpi-cell c-viol"><div class="kpi-eyebrow">Purchase Conversion Rate</div><div class="kpi-val" id="k2">—</div><div class="kpi-meta" id="k2m"></div></div>
+    <div class="kpi-cell c-amber"><div class="kpi-eyebrow">Cart Abandonment Rate</div><div class="kpi-val" id="k3">—</div><div class="kpi-meta" id="k3m"></div></div>
+    <div class="kpi-cell c-green"><div class="kpi-eyebrow">Premium Subscriber Share</div><div class="kpi-val" id="k4">—</div><div class="kpi-meta" id="k4m"></div></div>
+  </div>
+  <div style="height:10px"></div>
+  <div class="kpi-strip">
+    <div class="kpi-cell c-teal"><div class="kpi-eyebrow">Avg Order Value</div><div class="kpi-val" id="k5">—</div><div class="kpi-meta" id="k5m"></div></div>
+    <div class="kpi-cell c-blue"><div class="kpi-eyebrow">Brand Loyalty Score</div><div class="kpi-val" id="k6">—</div><div class="kpi-meta" id="k6m"></div></div>
+    <div class="kpi-cell c-viol"><div class="kpi-eyebrow">Weekly Purchases / User</div><div class="kpi-val" id="k7">—</div><div class="kpi-meta" id="k7m"></div></div>
+    <div class="kpi-cell c-teal"><div class="kpi-eyebrow">Loyalty Program Enrollment</div><div class="kpi-val" id="k8">—</div><div class="kpi-meta" id="k8m"></div></div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── S2: KEY INSIGHTS ─────────────────────────────────────────────── -->
+<div class="section" id="s2">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Section 02 — Key Insights</div>
+      <div class="section-title">Key Insights</div>
+      <div class="section-desc">Dynamic findings computed directly from the active dataset — all six insight cards update automatically with every filter change</div>
+    </div>
+  </div>
+  <div class="insight-row" id="insightRow"></div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── S3: CUSTOMER PERSONAS ────────────────────────────────────────── -->
+<div class="section" id="s3">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Section 03 — Customer Personas</div>
+      <div class="section-title">Customer Personas</div>
+      <div class="section-desc">K-Means clustering (k=5, 25 iterations) across 7 behavioral dimensions: monthly spend, average order value, weekly purchases, brand loyalty score, impulse buying score, purchase conversion rate, and cart abandonment rate</div>
+    </div>
+  </div>
+
+  <!-- Segment Summary Cards -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:16px" id="segSummary"></div>
+
+  <!-- Profile Table -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-body">
+      <div class="card-title">Segment Profile Table — All Dimensions</div>
+      <div style="overflow-x:auto"><table class="ptable" id="segTable"></table></div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Revenue Contribution by Segment</div>
+        <div class="ch" style="height:240px"><canvas id="segRevChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Conversion Rate by Segment</div>
+        <div class="ch" style="height:240px"><canvas id="segConvChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Avg Monthly Spend by Segment</div>
+        <div class="ch" style="height:240px"><canvas id="segSpendChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── S4: REVENUE DRIVERS ──────────────────────────────────────────── -->
+<div class="section" id="s4">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Section 04 — Revenue Drivers</div>
+      <div class="section-title">Revenue Drivers</div>
+      <div class="section-desc">Pearson correlation analysis and ranked feature importance identifying what statistically drives monthly spend — target variable: monthly_spend</div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Correlation Heatmap — Feature vs Monthly Spend</div>
+        <div id="heatmapWrap"></div>
+        <div style="margin-top:12px;font-size:11px;color:var(--ink4);line-height:1.5">Pearson r · <span style="display:inline-block;width:10px;height:10px;background:#1B4FD8;border-radius:2px;vertical-align:middle"></span> Positive &nbsp;<span style="display:inline-block;width:10px;height:10px;background:#C0392B;border-radius:2px;vertical-align:middle"></span> Negative · |r|&gt;0.3 strong · &gt;0.15 moderate</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Feature Importance — Ranked Drivers of Monthly Spend</div>
+        <div id="featureBars" style="padding-top:4px"></div>
+      </div>
+    </div>
+  </div>
+  <div style="height:16px"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Avg Monthly Spend by Device</div>
+        <div class="ch" style="height:200px"><canvas id="deviceChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Avg Monthly Spend by Income Bracket</div>
+        <div class="ch" style="height:200px"><canvas id="incomeChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── S5: CONVERSION FUNNEL ────────────────────────────────────────── -->
+<div class="section" id="s5">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Section 05 — Conversion Funnel</div>
+      <div class="section-title">Conversion Funnel</div>
+      <div class="section-desc">Stage-by-stage funnel analysis from product view to completed purchase — computed from product_views_per_day, wishlist_items_count, cart_items_average, and purchase_conversion_rate</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-body" id="funnelWrap"></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Conversion Rate by Product Category</div>
+        <div class="ch" style="height:230px"><canvas id="catConvChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Browse-to-Buy Ratio by Budgeting Style</div>
+        <div class="ch" style="height:230px"><canvas id="b2bChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── S6: CART ABANDONMENT ─────────────────────────────────────────── -->
+<div class="section" id="s6">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Section 06 — Cart Abandonment</div>
+      <div class="section-title">Cart Abandonment Analysis</div>
+      <div class="section-desc">Root-cause decomposition of cart abandonment across financial stress, income level, device type, and payment method friction — target variable: cart_abandonment_rate</div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Abandonment Rate by Budget Style (Financial Stress Proxy)</div>
+        <div class="ch" style="height:210px"><canvas id="abandStressChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Abandonment Rate by Income Bracket</div>
+        <div class="ch" style="height:210px"><canvas id="abandIncomeChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div style="height:16px"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Abandonment Rate by Device</div>
+        <div class="ch" style="height:200px"><canvas id="abandDeviceChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Root Cause — Checkout Abandonments / Month by Payment Method</div>
+        <div id="paymentBars" style="padding-top:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── S7: PREMIUM SUBSCRIPTION ─────────────────────────────────────── -->
+<div class="section" id="s7">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Section 07 — Premium Subscription</div>
+      <div class="section-title">Premium Subscription Model</div>
+      <div class="section-desc">Revenue lift analysis, subscriber profile breakdown, income-tier adoption rates, and spending distribution comparing premium versus standard users</div>
+    </div>
+  </div>
+  <div class="insight-row" id="premInsights" style="margin-bottom:16px"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Premium Adoption Rate by Income Bracket</div>
+        <div class="ch" style="height:210px"><canvas id="premIncChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="card-title">Premium vs Standard — Key Metric Lift</div>
+        <div style="display:flex;gap:14px;margin-bottom:10px;font-size:11px;color:var(--ink3)"><span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#6D28D9;display:inline-block"></span>Premium</span><span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#9999A8;display:inline-block"></span>Standard</span></div>
+        <div class="ch" style="height:185px"><canvas id="premLiftChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div style="height:16px"></div>
+  <div class="card">
+    <div class="card-body">
+      <div class="card-title">Spending Distribution — Premium vs Standard</div>
+      <div class="ch" style="height:200px"><canvas id="premDistChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ── S8: RECOMMENDATIONS ──────────────────────────────────────────── -->
+<div class="section" id="s8">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Section 08 — Recommendations</div>
+      <div class="section-title">Business Recommendations</div>
+      <div class="section-desc">Six prioritised, data-driven strategic actions — each directly linked to a specific dashboard finding with estimated business impact</div>
+    </div>
+  </div>
+  <div class="rec-grid" id="recGrid"></div>
+</div>
+
+</div><!-- /page -->
+<div class="toast" id="toast"></div>
+
+<!-- ─────────────────────────── JS ─────────────────────────────────── -->
+<script>
+var allData=[],filtered=[],charts={};
+var SEG_COLORS=['#1B4FD8','#0E7C6B','#B45309','#6D28D9','#C0392B'];
+var SEG_NAMES=['Champions','Loyalists','At-Risk','Browsers','Price Hunters'];
+var SEG_ICONS=['&#127942;','&#128081;','&#9888;','&#128065;','&#127991;'];
+var SEG_DESC=['High spend, high loyalty, high conversion','Loyal repeat buyers, moderate spend','Declining engagement, high abandonment','High browse, low purchase intent','Value-driven, price-sensitive buyers'];
+
+/* ── UTILS ── */
+function avg(a){return a.length?a.reduce(function(s,v){return s+v;},0)/a.length:0;}
+function aMax(a){var m=-Infinity;for(var i=0;i<a.length;i++)if(a[i]>m)m=a[i];return m;}
+function aMin(a){var m=Infinity;for(var i=0;i<a.length;i++)if(a[i]<m)m=a[i];return m;}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v));}
+function fmtM(n){return n>=1000?'$'+(n/1000).toFixed(1)+'k':'$'+Math.round(n);}
+function fmtP(n){return Math.round(n)+'%';}
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3000);}
+function dChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function mkC(id,cfg){dChart(id);var el=document.getElementById(id);if(!el)return;charts[id]=new Chart(el,cfg);}
+
+function sc(xP,yP){
+  var xT={color:'#9999A8',font:{size:11}},yT={color:'#9999A8',font:{size:11}};
+  if(xP)xT.callback=function(v){return v+'%';};
+  if(yP)yT.callback=function(v){return v+'%';};
+  return{x:{ticks:xT,grid:{color:'rgba(0,0,0,0.035)'},border:{color:'#E8E8EE'}},
+         y:{ticks:yT,grid:{color:'rgba(0,0,0,0.035)'},border:{color:'#E8E8EE'}}};
+}
+function tip(fn){
+  return{backgroundColor:'#0D0D0F',titleColor:'rgba(255,255,255,0.6)',bodyColor:'#fff',
+    borderColor:'rgba(255,255,255,0.08)',borderWidth:1,padding:10,
+    callbacks:fn?{label:function(c){return fn(c.raw);}}:{}};
+}
+function bOpts(xP,yP,fn){
+  return{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:tip(fn)},scales:sc(xP,yP)};
+}
+
+/* ── K-MEANS ── */
+function kmeans(data,k,its){
+  its=its||25;
+  var keys=['monthly_spend','average_order_value','weekly_purchases','brand_loyalty_score','impulse_buying_score','purchase_conversion_rate','cart_abandonment_rate'];
+  var lo={},hi={};
+  keys.forEach(function(k){var v=data.map(function(r){return r[k]||0;});lo[k]=aMin(v);hi[k]=aMax(v);});
+  function nrm(r){return keys.map(function(k){return hi[k]>lo[k]?(r[k]-lo[k])/(hi[k]-lo[k]):0;});}
+  var pts=data.map(nrm);
+  var step=Math.floor(pts.length/k);
+  var cents=[];
+  for(var c=0;c<k;c++)cents.push(pts[c*step].slice());
+  var lbl=[];for(var i=0;i<data.length;i++)lbl.push(0);
+  for(var it=0;it<its;it++){
+    for(var i=0;i<pts.length;i++){
+      var best=0,bd=Infinity;
+      for(var j=0;j<k;j++){var d=0;for(var f=0;f<keys.length;f++){var df=pts[i][f]-cents[j][f];d+=df*df;}if(d<bd){bd=d;best=j;}}
+      lbl[i]=best;
+    }
+    var sm=[],ct=[];
+    for(var j=0;j<k;j++){sm.push(new Array(keys.length).fill(0));ct.push(0);}
+    for(var i=0;i<pts.length;i++){ct[lbl[i]]++;for(var f=0;f<keys.length;f++)sm[lbl[i]][f]+=pts[i][f];}
+    for(var j=0;j<k;j++)for(var f=0;f<keys.length;f++)cents[j][f]=ct[j]?sm[j][f]/ct[j]:cents[j][f];
+  }
+  return lbl;
+}
+
+function buildSegs(data){
+  var lbl=kmeans(data,5,25),segs=[];
+  for(var s=0;s<5;s++){
+    var rows=data.filter(function(_,i){return lbl[i]===s;});
+    if(!rows.length)continue;
+    segs.push({
+      id:s,count:rows.length,
+      spend:avg(rows.map(function(r){return r.monthly_spend;})),
+      aov:avg(rows.map(function(r){return r.average_order_value;})),
+      conv:avg(rows.map(function(r){return r.purchase_conversion_rate;})),
+      abnd:avg(rows.map(function(r){return r.cart_abandonment_rate;})),
+      loy:avg(rows.map(function(r){return r.brand_loyalty_score;})),
+      imp:avg(rows.map(function(r){return r.impulse_buying_score;})),
+      wk:avg(rows.map(function(r){return r.weekly_purchases;})),
+      prem:rows.filter(function(r){return r.premium_subscription===1;}).length/rows.length*100
+    });
+  }
+  segs.sort(function(a,b){return b.spend-a.spend;});
+  segs.forEach(function(s,i){s.name=SEG_NAMES[i];s.color=SEG_COLORS[i];s.icon=SEG_ICONS[i];s.desc=SEG_DESC[i];});
+  return segs;
+}
+
+/* ── PEARSON ── */
+function pearson(xs,ys){
+  var n=xs.length;if(!n)return 0;
+  var mx=avg(xs),my=avg(ys),num=0,dx=0,dy=0;
+  for(var i=0;i<n;i++){var a=xs[i]-mx,b=ys[i]-my;num+=a*b;dx+=a*a;dy+=b*b;}
+  return(dx&&dy)?num/Math.sqrt(dx*dy):0;
+}
+
+/* ── KPIs ── */
+function renderKPIs(data){
+  var pc=data.filter(function(r){return r.premium_subscription===1;}).length;
+  var lc=data.filter(function(r){return r.loyalty_program_member===1;}).length;
+  var ms=avg(data.map(function(r){return r.monthly_spend;}));
+  var cv=avg(data.map(function(r){return r.purchase_conversion_rate;}));
+  var ca=avg(data.map(function(r){return r.cart_abandonment_rate;}));
+  var pr=pc/data.length*100;
+  var aov=avg(data.map(function(r){return r.average_order_value;}));
+  var bl=avg(data.map(function(r){return r.brand_loyalty_score;}));
+  var wp=avg(data.map(function(r){return r.weekly_purchases;}));
+  var lp=lc/data.length*100;
+  // hero stats
+  document.getElementById('hKpi1').textContent=fmtM(ms);
+  document.getElementById('hKpi2').textContent=fmtP(cv);
+  document.getElementById('hKpi3').textContent=fmtP(ca);
+  document.getElementById('hKpi4').textContent=fmtP(pr);
+  // nav badge
+  document.getElementById('navBadge').textContent=data.length.toLocaleString()+' records';
+  // strip
+  document.getElementById('k1').textContent=fmtM(ms);
+  document.getElementById('k1m').innerHTML=data.length.toLocaleString()+' shoppers analysed';
+  document.getElementById('k2').textContent=fmtP(cv);
+  document.getElementById('k2m').innerHTML='<span class="badge '+(cv>50?'badge-up':'badge-dn')+'">'+fmtP(cv)+'</span>';
+  document.getElementById('k3').textContent=fmtP(ca);
+  document.getElementById('k3m').innerHTML='<span class="badge '+(ca>60?'badge-dn':'badge-up')+'">'+fmtP(ca)+'</span> avg rate';
+  document.getElementById('k4').textContent=fmtP(pr);
+  document.getElementById('k4m').innerHTML=pc.toLocaleString()+' premium users';
+  document.getElementById('k5').textContent=fmtM(aov);
+  document.getElementById('k5m').innerHTML='Per transaction avg';
+  document.getElementById('k6').textContent=bl.toFixed(1);
+  document.getElementById('k6m').innerHTML='Out of 10';
+  document.getElementById('k7').textContent=wp.toFixed(1);
+  document.getElementById('k7m').innerHTML='Orders / week / user';
+  document.getElementById('k8').textContent=fmtP(lp);
+  document.getElementById('k8m').innerHTML=lc.toLocaleString()+' enrolled';
+  document.getElementById('filterCount').textContent=data.length.toLocaleString()+' records matched';
+}
+
+/* ── INSIGHTS ── */
+function renderInsights(data,segs){
+  var top=segs[0];
+  var hiA=segs.slice().sort(function(a,b){return b.abnd-a.abnd;})[0];
+  var hiC=segs.slice().sort(function(a,b){return b.conv-a.conv;})[0];
+  var mA=avg(data.filter(function(r){return r.device_type==='Mobile';}).map(function(r){return r.cart_abandonment_rate;}));
+  var dA=avg(data.filter(function(r){return r.device_type==='Desktop';}).map(function(r){return r.cart_abandonment_rate;}));
+  var gap=mA-dA;
+  var sp=pearson(data.map(function(r){return r.income_level||0;}),data.map(function(r){return r.monthly_spend;}));
+  var pr=data.filter(function(r){return r.premium_subscription===1;});
+  var np=data.filter(function(r){return r.premium_subscription===0;});
+  var lift=pr.length&&np.length?(avg(pr.map(function(r){return r.monthly_spend;}))-avg(np.map(function(r){return r.monthly_spend;})))/avg(np.map(function(r){return r.monthly_spend;}))*100:0;
+  var cards=[
+    {cls:'good', label:'Highest-Revenue Segment',      val:top.name,                        desc:'Avg '+fmtM(top.spend)+'/mo · '+fmtP(top.conv)+' conversion · '+fmtP(top.prem)+' premium rate. Highest-value cluster — prioritise retention.'},
+    {cls:'danger',label:'Highest Abandonment Segment', val:hiA.name+' — '+fmtP(hiA.abnd),  desc:'This segment drives the most cart abandonment. Target with exit-intent overlays and checkout simplification.'},
+    {cls:'good', label:'Best Converting Segment',      val:hiC.name+' — '+fmtP(hiC.conv),  desc:fmtP(hiC.conv)+' purchase conversion. Study this segment\'s triggers and replicate the journey cross-segment.'},
+    {cls:'warn', label:'Mobile vs Desktop Gap',        val:(gap>0?'+':'')+fmtP(gap),        desc:'Mobile abandonment is '+(gap>0?gap.toFixed(1)+'pp higher than desktop. Checkout UX simplification is high-priority.':'lower than desktop — maintain current mobile experience.')},
+    {cls:'good', label:'Premium Revenue Lift',         val:(lift>0?'+':'')+fmtP(lift),       desc:'Premium users spend '+fmtM(avg(pr.map(function(r){return r.monthly_spend;})))+' vs '+fmtM(avg(np.map(function(r){return r.monthly_spend;})))+' for standard. Clear monetisation upside.'},
+    {cls:'info', label:'Income–Spend Correlation',     val:'r = '+sp.toFixed(2),            desc:'Pearson r='+sp.toFixed(2)+'. Income is a '+(Math.abs(sp)>0.5?'strong':'moderate')+' predictor of spend. High-income targeting is data-justified.'}
+  ];
+  document.getElementById('insightRow').innerHTML=cards.map(function(c){
+    return '<div class="insight-card '+c.cls+'"><div class="insight-label">'+c.label+'</div><div class="insight-val">'+c.val+'</div><div class="insight-desc">'+c.desc+'</div></div>';
+  }).join('');
+}
+
+/* ── SEGMENTS ── */
+function renderSegs(data,segs){
+  var tot=segs.reduce(function(s,g){return s+g.spend*g.count;},0);
+
+  // Summary cards
+  document.getElementById('segSummary').innerHTML=segs.map(function(s){
+    var rs=tot?(s.spend*s.count/tot*100):0;
+    return '<div class="card"><div class="card-body" style="display:flex;flex-direction:column;gap:10px">'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        '<div style="width:32px;height:32px;border-radius:8px;background:'+s.color+'20;display:grid;place-items:center;font-size:16px">'+s.icon+'</div>'+
+        '<div><div style="font-size:14px;font-weight:700;color:var(--ink)">'+s.name+'</div><div style="font-size:11px;color:var(--ink3)">'+s.count.toLocaleString()+' users</div></div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--ink3);line-height:1.4">'+s.desc+'</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+        '<div style="background:var(--surf2);border-radius:6px;padding:8px 10px"><div style="font-size:10px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">Avg Spend</div><div style="font-size:16px;font-weight:800;color:'+s.color+'">'+fmtM(s.spend)+'</div></div>'+
+        '<div style="background:var(--surf2);border-radius:6px;padding:8px 10px"><div style="font-size:10px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">Rev Share</div><div style="font-size:16px;font-weight:800;color:var(--ink)">'+fmtP(rs)+'</div></div>'+
+      '</div>'+
+    '</div></div>';
+  }).join('');
+
+  // Profile table
+  var th='<thead><tr><th>Segment</th><th>Users</th><th>Avg Spend</th><th>Avg AOV</th><th>Conversion</th><th>Abandonment</th><th>Loyalty</th><th>Impulse</th><th>Wkly Orders</th><th>Premium %</th><th>Rev Share</th></tr></thead>';
+  var tb='<tbody>'+segs.map(function(s){
+    var rs=tot?(s.spend*s.count/tot*100):0;
+    var cp=s.conv>60?'background:#DCFCE7;color:#166534':s.conv>40?'background:#FEF3C7;color:#B45309':'background:#FDECEA;color:#C0392B';
+    return '<tr>'+
+      '<td><span class="seg-dot" style="background:'+s.color+'"></span><strong>'+s.name+'</strong></td>'+
+      '<td>'+s.count.toLocaleString()+'</td>'+
+      '<td><strong>'+fmtM(s.spend)+'</strong></td>'+
+      '<td>'+fmtM(s.aov)+'</td>'+
+      '<td><span class="pill" style="'+cp+'">'+fmtP(s.conv)+'</span></td>'+
+      '<td>'+fmtP(s.abnd)+'</td>'+
+      '<td>'+s.loy.toFixed(1)+'/10</td>'+
+      '<td>'+s.imp.toFixed(1)+'/10</td>'+
+      '<td>'+s.wk.toFixed(1)+'</td>'+
+      '<td>'+fmtP(s.prem)+'</td>'+
+      '<td><div class="mini-bar-wrap"><div class="mini-bar"><div class="mini-bar-fill" style="width:'+rs.toFixed(0)+'%;background:'+s.color+'"></div></div><span style="font-size:11px;font-weight:600">'+fmtP(rs)+'</span></div></td>'+
+      '</tr>';
+  }).join('')+'</tbody>';
+  document.getElementById('segTable').innerHTML=th+tb;
+
+  mkC('segRevChart',{type:'bar',data:{labels:segs.map(function(s){return s.name;}),datasets:[{data:segs.map(function(s){return tot?s.spend*s.count/tot*100:0;}),backgroundColor:segs.map(function(s){return s.color;}),borderRadius:5}]},options:bOpts(false,true,fmtP)});
+  mkC('segConvChart',{type:'bar',data:{labels:segs.map(function(s){return s.name;}),datasets:[{data:segs.map(function(s){return s.conv;}),backgroundColor:segs.map(function(s){return s.color;}),borderRadius:5}]},options:bOpts(false,true,fmtP)});
+  mkC('segSpendChart',{type:'bar',data:{labels:segs.map(function(s){return s.name;}),datasets:[{data:segs.map(function(s){return s.spend;}),backgroundColor:segs.map(function(s){return s.color;}),borderRadius:5}]},options:bOpts(false,false,fmtM)});
+}
+
+/* ── SPENDING DRIVERS ── */
+function renderDrivers(data){
+  var feats=['income_level','brand_loyalty_score','impulse_buying_score','social_media_influence_score','average_order_value','weekly_purchases','loyalty_program_member','premium_subscription','has_children','weekend_shopper'];
+  var lbls=['Income Level','Brand Loyalty','Impulse Buying','Social Media Influence','Avg Order Value','Weekly Purchases','Loyalty Member','Premium Sub','Has Children','Weekend Shopper'];
+  var tgt=data.map(function(r){return r.monthly_spend;});
+  var pairs=feats.map(function(f,i){return{l:lbls[i],r:pearson(data.map(function(r){return r[f]||0;}),tgt)};});
+  pairs.sort(function(a,b){return Math.abs(b.r)-Math.abs(a.r);});
+  var top=pairs.slice(0,8);
+
+  // Heatmap
+  var hCols=function(r){var a=clamp(Math.abs(r),0,1);return r>=0?'rgba(27,79,216,'+a+')':'rgba(192,57,43,'+a+')';};
+  var tblH='<table class="htable"><thead><tr><th>Feature</th><th>Pearson r</th><th>Strength</th></tr></thead><tbody>';
+  tblH+=top.slice(0,8).map(function(p){
+    var str=Math.abs(p.r)>0.3?'Strong':Math.abs(p.r)>0.15?'Moderate':'Weak';
+    var sc2=Math.abs(p.r)>0.3?'#166534':Math.abs(p.r)>0.15?'#B45309':'#9999A8';
+    var bg=Math.abs(p.r)>0.3?'#DCFCE7':Math.abs(p.r)>0.15?'#FEF3C7':'#F3F3F7';
+    return '<tr><td class="feat">'+p.l+'</td>'+
+      '<td><div class="hcell" style="background:'+hCols(p.r)+'">'+p.r.toFixed(2)+'</div></td>'+
+      '<td><span class="pill" style="background:'+bg+';color:'+sc2+'">'+str+'</span></td></tr>';
+  }).join('');
+  tblH+='</tbody></table>';
+  document.getElementById('heatmapWrap').innerHTML=tblH;
+
+  // Feature bars
+  var mx=aMax(top.map(function(p){return Math.abs(p.r);}));
+  document.getElementById('featureBars').innerHTML=top.map(function(p){
+    var w=Math.round(Math.abs(p.r)/mx*100);
+    return '<div class="bar-row"><div class="bar-lbl">'+p.l+'</div><div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+(p.r>=0?'#1B4FD8':'#C0392B')+'"></div></div><div class="bar-val">r='+p.r.toFixed(2)+'</div></div>';
+  }).join('');
+
+  mkC('deviceChart',{type:'bar',data:{labels:['Mobile','Desktop','Tablet'],datasets:[{data:['Mobile','Desktop','Tablet'].map(function(d){return avg(data.filter(function(r){return r.device_type===d;}).map(function(r){return r.monthly_spend;}));}),backgroundColor:['#1B4FD8','#0E7C6B','#6D28D9'],borderRadius:5}]},options:bOpts(false,false,fmtM)});
+
+  var bks=[{l:'<$30k',lo:0,hi:30000},{l:'$30-60k',lo:30000,hi:60000},{l:'$60-100k',lo:60000,hi:100000},{l:'$100-150k',lo:100000,hi:150000},{l:'$150k+',lo:150000,hi:Infinity}];
+  mkC('incomeChart',{type:'bar',data:{labels:bks.map(function(b){return b.l;}),datasets:[{data:bks.map(function(b){return avg(data.filter(function(r){return r.income_level>=b.lo&&r.income_level<b.hi;}).map(function(r){return r.monthly_spend;}));}),backgroundColor:'#1B4FD8',borderRadius:5}]},options:bOpts(false,false,fmtM)});
+}
+
+/* ── FUNNEL ── */
+function renderFunnel(data){
+  var n=data.length;
+  var views=avg(data.map(function(r){return r.product_views_per_day||5;}));
+  var wish=avg(data.map(function(r){return r.wishlist_items_count||0;}));
+  var cart=avg(data.map(function(r){return r.cart_items_average||0;}));
+  var conv=avg(data.map(function(r){return r.purchase_conversion_rate||0;}))/100;
+  var wR=views>0?clamp(wish/views*100,5,95):42;
+  var cR=wish>0?clamp(cart/wish*100,5,95):58;
+  var pR=conv*100;
+  var b=100,aw=Math.round(b*wR/100),ac=Math.round(aw*cR/100),ap=Math.round(b*pR);
+  var steps=[{l:'Product Views',n:b,c:'#1B4FD8'},{l:'Wishlist Add',n:aw,c:'#0E7C6B'},{l:'Added to Cart',n:ac,c:'#6D28D9'},{l:'Completed Purchase',n:ap,c:'#B45309'}];
+  var drops=[100-wR,100-cR,Math.round((ac-ap)/ac*100||0)];
+  var html='<div class="card-title">Conversion Funnel — Per 100 Sessions</div>';
+  html+=steps.map(function(s,i){
+    var w=Math.round(s.n/b*100);
+    var dr=i<drops.length?'<div class="funnel-drop">&#9660; '+fmtP(drops[i])+' drop-off at this stage</div>':'';
+    return '<div class="funnel-row"><div class="funnel-lbl">'+s.l+'</div><div class="funnel-track"><div class="funnel-fill" style="width:'+w+'%;background:'+s.c+'"><span>'+s.n+'</span><span style="opacity:0.7;font-weight:400;font-size:11px">('+w+'%)</span></div></div></div>'+dr;
+  }).join('');
+  var stgs=['View → Wishlist','Wishlist → Cart','Cart → Purchase','Overall Conversion'];
+  var sVals=[wR.toFixed(1)+'%',cR.toFixed(1)+'%',(100-(ac-ap)/ac*100||0).toFixed(1)+'%',pR.toFixed(1)+'%'];
+  var sCols=['#1B4FD8','#0E7C6B','#6D28D9','#B45309'];
+  html+='<div class="stage-cards">'+stgs.map(function(s,i){
+    return '<div class="stage-card" style="border-top-color:'+sCols[i]+'"><div class="stage-card-lbl">'+s+'</div><div class="stage-card-val">'+sVals[i]+'</div></div>';
+  }).join('')+'</div>';
+  document.getElementById('funnelWrap').innerHTML=html;
+
+  var cats=['Groceries','Fashion','Electronics','Beauty','Books','Sports','Home & Kitchen','Toys'];
+  var ccols=['#1B4FD8','#0E7C6B','#6D28D9','#B45309','#C0392B','#166534','#993556','#5F5E5A'];
+  var cv2=cats.map(function(c){return avg(data.filter(function(r){return r.product_category_preference===c;}).map(function(r){return r.purchase_conversion_rate;}));});
+  var si=cats.map(function(_,i){return i;}).sort(function(a,b){return cv2[b]-cv2[a];});
+  mkC('catConvChart',{type:'bar',data:{labels:si.map(function(i){return cats[i];}),datasets:[{data:si.map(function(i){return cv2[i];}),backgroundColor:si.map(function(i){return ccols[i];}),borderRadius:4}]},options:Object.assign({},bOpts(false,true,fmtP),{indexAxis:'y'})});
+
+  var bgs=['Strict','Moderate','Loose'];
+  mkC('b2bChart',{type:'bar',data:{labels:bgs,datasets:[{data:bgs.map(function(b2){return avg(data.filter(function(r){return r.budgeting_style===b2;}).map(function(r){return r.browse_to_buy_ratio;}));}),backgroundColor:['#1B4FD8','#B45309','#0E7C6B'],borderRadius:5}]},options:bOpts(false,false,function(v){return v.toFixed(1)+'x';})});
+}
+
+/* ── CART ABANDONMENT ── */
+function renderAbandonment(data){
+  var bgs=['Strict','Moderate','Loose'];
+  mkC('abandStressChart',{type:'bar',data:{labels:['Strict Budget','Moderate Budget','Loose Budget'],datasets:[{data:bgs.map(function(b){return avg(data.filter(function(r){return r.budgeting_style===b;}).map(function(r){return r.cart_abandonment_rate;}));}),backgroundColor:['#C0392B','#B45309','#0E7C6B'],borderRadius:5}]},options:bOpts(false,true,fmtP)});
+
+  var bks=[{l:'<$30k',lo:0,hi:30000},{l:'$30-60k',lo:30000,hi:60000},{l:'$60-100k',lo:60000,hi:100000},{l:'$100-150k',lo:100000,hi:150000},{l:'$150k+',lo:150000,hi:Infinity}];
+  mkC('abandIncomeChart',{type:'line',data:{labels:bks.map(function(b){return b.l;}),datasets:[{data:bks.map(function(b){return avg(data.filter(function(r){return r.income_level>=b.lo&&r.income_level<b.hi;}).map(function(r){return r.cart_abandonment_rate;}));}),borderColor:'#C0392B',backgroundColor:'rgba(192,57,43,0.07)',tension:0.35,pointBackgroundColor:'#C0392B',pointRadius:5,fill:true}]},options:bOpts(false,true,fmtP)});
+
+  mkC('abandDeviceChart',{type:'bar',data:{labels:['Mobile','Desktop','Tablet'],datasets:[{data:['Mobile','Desktop','Tablet'].map(function(d){return avg(data.filter(function(r){return r.device_type===d;}).map(function(r){return r.cart_abandonment_rate;}));}),backgroundColor:['#C0392B','#1B4FD8','#6D28D9'],borderRadius:5}]},options:bOpts(false,true,fmtP)});
+
+  var pm={};
+  data.forEach(function(r){var k=r.preferred_payment_method||'Other';pm[k]=pm[k]||[];pm[k].push(r.checkout_abandonments_per_month);});
+  var pk=Object.keys(pm).sort(function(a,b){return avg(pm[b])-avg(pm[a]);});
+  var pv=pk.map(function(k){return avg(pm[k]);});
+  var mx=aMax(pv);
+  document.getElementById('paymentBars').innerHTML=pk.map(function(k,i){
+    var w=Math.round(pv[i]/mx*100);
+    var c=pv[i]/mx>0.7?'#C0392B':pv[i]/mx>0.4?'#B45309':'#0E7C6B';
+    return '<div class="bar-row"><div class="bar-lbl">'+k+'</div><div class="bar-track"><div class="bar-fill" style="width:'+w+'%;background:'+c+'"></div></div><div class="bar-val">'+pv[i].toFixed(1)+'/mo</div></div>';
+  }).join('');
+}
+
+/* ── PREMIUM ── */
+function renderPremium(data){
+  var pr=data.filter(function(r){return r.premium_subscription===1;});
+  var np=data.filter(function(r){return r.premium_subscription===0;});
+  if(!pr.length||!np.length){document.getElementById('premInsights').innerHTML='';return;}
+  var pS=avg(pr.map(function(r){return r.monthly_spend;}));
+  var nS=avg(np.map(function(r){return r.monthly_spend;}));
+  var lift=(pS-nS)/nS*100;
+  var pC=avg(pr.map(function(r){return r.purchase_conversion_rate;}));
+  var nC=avg(np.map(function(r){return r.purchase_conversion_rate;}));
+  var pA=avg(pr.map(function(r){return r.cart_abandonment_rate;}));
+  var nA=avg(np.map(function(r){return r.cart_abandonment_rate;}));
+  document.getElementById('premInsights').innerHTML=[
+    {cls:'good', label:'Avg Monthly Spend Lift',   val:(lift>0?'+':'')+fmtP(lift),       desc:'Premium: '+fmtM(pS)+' vs Standard: '+fmtM(nS)},
+    {cls:'good', label:'Conversion Rate Lift',     val:(pC-nC>0?'+':'')+fmtP(pC-nC),    desc:'Premium: '+fmtP(pC)+' vs Standard: '+fmtP(nC)},
+    {cls:(pA<nA?'good':'warn'),label:'Abandonment Difference',val:(pA-nA>0?'+':'')+fmtP(pA-nA),desc:'Premium: '+fmtP(pA)+' vs Standard: '+fmtP(nA)}
+  ].map(function(c){return '<div class="insight-card '+c.cls+'"><div class="insight-label">'+c.label+'</div><div class="insight-val">'+c.val+'</div><div class="insight-desc">'+c.desc+'</div></div>';}).join('');
+
+  var bks=[{l:'<$30k',lo:0,hi:30000},{l:'$30-60k',lo:30000,hi:60000},{l:'$60-100k',lo:60000,hi:100000},{l:'$100-150k',lo:100000,hi:150000},{l:'$150k+',lo:150000,hi:Infinity}];
+  mkC('premIncChart',{type:'bar',data:{labels:bks.map(function(b){return b.l;}),datasets:[{data:bks.map(function(b){var g=data.filter(function(r){return r.income_level>=b.lo&&r.income_level<b.hi;});return g.length?g.filter(function(r){return r.premium_subscription===1;}).length/g.length*100:0;}),backgroundColor:'#6D28D9',borderRadius:5}]},options:bOpts(false,true,fmtP)});
+
+  var mts=['Avg Spend','AOV','Conversion','Brand Loyalty'];
+  var sc2=[50,10,1,10];
+  var pV=[avg(pr.map(function(r){return r.monthly_spend;})),avg(pr.map(function(r){return r.average_order_value;})),avg(pr.map(function(r){return r.purchase_conversion_rate;})),avg(pr.map(function(r){return r.brand_loyalty_score;}))];
+  var nV=[avg(np.map(function(r){return r.monthly_spend;})),avg(np.map(function(r){return r.average_order_value;})),avg(np.map(function(r){return r.purchase_conversion_rate;})),avg(np.map(function(r){return r.brand_loyalty_score;}))];
+  mkC('premLiftChart',{type:'bar',data:{labels:mts,datasets:[{label:'Premium',data:pV.map(function(v,i){return v/sc2[i];}),backgroundColor:'#6D28D9',borderRadius:4},{label:'Standard',data:nV.map(function(v,i){return v/sc2[i];}),backgroundColor:'#9999A8',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:tip()},scales:sc()}});
+
+  var bins=[0,500,1000,1500,2000,2500,3000,3500,4000];
+  var bL=bins.map(function(b,i){return i<bins.length-1?'$'+b+'-'+(bins[i+1]):'$'+b+'+';});
+  mkC('premDistChart',{type:'line',data:{labels:bL,datasets:[
+    {label:'Premium',data:bins.map(function(b,i){return i<bins.length-1?pr.filter(function(r){return r.monthly_spend>=b&&r.monthly_spend<bins[i+1];}).length:pr.filter(function(r){return r.monthly_spend>=b;}).length;}),borderColor:'#6D28D9',backgroundColor:'rgba(109,40,217,0.08)',tension:0.4,fill:true,pointRadius:3},
+    {label:'Standard',data:bins.map(function(b,i){return i<bins.length-1?np.filter(function(r){return r.monthly_spend>=b&&r.monthly_spend<bins[i+1];}).length:np.filter(function(r){return r.monthly_spend>=b;}).length;}),borderColor:'#9999A8',backgroundColor:'rgba(153,153,168,0.05)',tension:0.4,fill:true,pointRadius:3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#6B6B78',font:{size:11},boxWidth:10}},tooltip:tip()},scales:sc()}});
+}
+
+/* ── RECOMMENDATIONS ── */
+function renderRecs(data,segs){
+  var top=segs[0];
+  var hiA=segs.slice().sort(function(a,b){return b.abnd-a.abnd;})[0];
+  var pp=data.filter(function(r){return r.premium_subscription===1;}).length/data.length*100;
+  var mA=avg(data.filter(function(r){return r.device_type==='Mobile';}).map(function(r){return r.cart_abandonment_rate;}));
+  var dA=avg(data.filter(function(r){return r.device_type==='Desktop';}).map(function(r){return r.cart_abandonment_rate;}));
+  var recs=[
+    {n:1,bc:'#1B4FD8',bg:'#EEF2FF',title:'Invest in '+top.name+' Retention',body:'This segment delivers '+fmtM(top.spend)+'/mo avg spend at '+fmtP(top.conv)+' conversion. Build dedicated VIP perks, personalised recommendations, and proactive account management to protect this revenue base.',impact:'High Revenue',ic:'#166534',ib:'#DCFCE7'},
+    {n:2,bc:'#C0392B',bg:'#FDECEA',title:'Fix '+hiA.name+' Cart Abandonment ('+fmtP(hiA.abnd)+')',body:'Highest-abandonment segment. Deploy exit-intent overlays, trust badges at checkout, saved-cart email sequences within 1h, and A/B test one-click checkout. Estimated recovery: 10-15% of lost carts.',impact:'High Urgency',ic:'#C0392B',ib:'#FDECEA'},
+    {n:3,bc:'#6D28D9',bg:'#EDE9FE',title:'Scale Premium to '+(pp<40?'40%+':'Maintain 40%+'),body:'Premium rate is currently '+fmtP(pp)+'. '+(pp<30?'Launch a visible value campaign at checkout — quantify savings, show exclusive benefits. A free-trial nudge can convert fence-sitters.':'Add 2-3 new perks via in-app announcements to sustain premium satisfaction and renewal rates.'),impact:'Revenue Lift',ic:'#6D28D9',ib:'#EDE9FE'},
+    {n:4,bc:'#0E7C6B',bg:'#E6F5F2',title:'Mobile Checkout Redesign',body:'Mobile abandonment is '+fmtP(mA)+' vs '+fmtP(dA)+' on desktop ('+fmtP(mA-dA)+' gap). Reduce checkout to 2 steps, enable Apple Pay / Google Pay as default, add a visual progress bar, and auto-fill shipping from account data.',impact:'Medium Impact',ic:'#0E7C6B',ib:'#E6F5F2'},
+    {n:5,bc:'#B45309',bg:'#FEF3C7',title:'High-Income Segment Activation',body:'Income is a statistically significant predictor of spend. Target $100k+ income bracket with premium product bundles, early access launches, and concierge-style features. Current income-spend correlation supports budget allocation here.',impact:'LTV Growth',ic:'#B45309',ib:'#FEF3C7'},
+    {n:6,bc:'#166534',bg:'#DCFCE7',title:'Wishlist-to-Cart Automation',body:'High-intent users who wishlist but do not convert are a low-cost, high-return opportunity. Trigger price-drop alerts, limited-time wishlist discounts, and restock notifications within 24h of item availability. Low engineering cost, measurable lift in 2-4 weeks.',impact:'Quick Win',ic:'#166534',ib:'#DCFCE7'}
+  ];
+  document.getElementById('recGrid').innerHTML=recs.map(function(r){
+    return '<div class="rec-card" style="border-top-color:'+r.bc+'">'+
+      '<div class="rec-head"><div class="rec-num" style="background:'+r.bg+';color:'+r.bc+'">'+r.n+'</div><div class="rec-title">'+r.title+'</div></div>'+
+      '<div class="rec-body">'+r.body+'</div>'+
+      '<div><span class="rec-impact" style="background:'+r.ib+';color:'+r.ic+'">&#9650; '+r.impact+'</span></div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ── MASTER ── */
+function renderAll(d){
+  if(!d||!d.length)return;
+  var segs=buildSegs(d);
+  renderKPIs(d);
+  renderInsights(d,segs);
+  renderSegs(d,segs);
+  renderDrivers(d);
+  renderFunnel(d);
+  renderAbandonment(d);
+  renderPremium(d);
+  renderRecs(d,segs);
+}
+
+/* ── FILTERS ── */
+function applyFilters(){
+  var g=document.getElementById('fGender').value,c=document.getElementById('fCountry').value,
+      d=document.getElementById('fDevice').value,b=document.getElementById('fBudget').value,
+      cat=document.getElementById('fCategory').value,pr=document.getElementById('fPremium').value;
+  filtered=allData.filter(function(r){
+    return(!g||r.gender===g)&&(!c||r.country===c)&&(!d||r.device_type===d)&&
+           (!b||r.budgeting_style===b)&&(!cat||r.product_category_preference===cat)&&
+           (pr===''||r.premium_subscription===Number(pr));
+  });
+  renderAll(filtered);
+}
+function resetFilters(){
+  ['fGender','fCountry','fDevice','fBudget','fCategory','fPremium'].forEach(function(id){document.getElementById(id).value='';});
+  filtered=allData.slice();renderAll(filtered);
+}
+
+/* ── EXPORT ── */
+function downloadDashboard(){
+  var h='<!DOCTYPE html>'+document.documentElement.outerHTML;
+  var b=new Blob([h],{type:'text/html'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ecommerce_analytics_dashboard.html';a.click();
+  showToast('Dashboard exported successfully');
+}
+
+/* ── TOC ACTIVE ── */
+function updateTOC(){
+  var links=document.querySelectorAll('.toc-link');
+  var ids=['s1','s2','s3','s4','s5','s6','s7','s8'];
+  var active='s1';
+  ids.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el&&el.getBoundingClientRect().top<=160)active=id;
+  });
+  links.forEach(function(l){l.classList.remove('active');if(l.getAttribute('href')==='#'+active)l.classList.add('active');});
+}
+window.addEventListener('scroll',updateTOC,{passive:true});
+
+/* ── SAMPLE DATA ── */
+function buildSample(){
+  var co=['Germany','Japan','India','Canada','USA','France','Australia','UK','Brazil','China'];
+  var gn=['Female','Male','Non-binary','Other'];
+  var dv=['Mobile','Desktop','Tablet'];
+  var bg=['Strict','Moderate','Loose'];
+  var ct=['Groceries','Fashion','Electronics','Beauty','Books','Sports','Home & Kitchen','Toys'];
+  var pm=['PayPal','Credit Card','Google Pay','Debit Card','Apple Pay','Crypto'];
+  function r(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+  function p(a){return a[Math.floor(Math.random()*a.length)];}
+  function rf(a,b){return Math.random()*(b-a)+a;}
+  var out=[];
+  for(var i=0;i<10000;i++){
+    var inc=r(10,200)*1000,prem=Math.random()<(0.18+inc/500000)?1:0,loy=Math.random()<0.48?1:0;
+    var brand=r(1,10),imp=r(1,10),sm=r(1,10);
+    var spend=Math.max(50,Math.round(inc*0.012+(prem?350:0)+(loy?120:0)+(brand>7?200:0)+rf(-300,500)));
+    var abnd=clamp(Math.round(50+(inc<50000?15:0)-(loy?10:0)-(prem?8:0)+r(-20,20)),0,100);
+    var conv=clamp(Math.round(45+(prem?15:0)+(brand>7?10:0)+r(-15,15)),0,100);
+    var views=rf(2,20),wish=rf(0.5,views*0.6),cart=rf(0.3,wish*0.8);
+    out.push({user_id:i+1,age:r(18,75),gender:p(gn),country:p(co),income_level:inc,
+      device_type:p(dv),budgeting_style:p(bg),product_category_preference:p(ct),
+      monthly_spend:spend,average_order_value:r(20,600),cart_abandonment_rate:abnd,
+      purchase_conversion_rate:conv,brand_loyalty_score:brand,impulse_buying_score:imp,
+      social_media_influence_score:sm,loyalty_program_member:loy,premium_subscription:prem,
+      weekly_purchases:r(1,14),browse_to_buy_ratio:rf(3,80),
+      checkout_abandonments_per_month:r(0,8),has_children:r(0,1),weekend_shopper:r(0,1),
+      preferred_payment_method:p(pm),referral_count:r(0,12),
+      product_views_per_day:views,wishlist_items_count:wish,cart_items_average:cart,
+      financial_stress_score:r(1,10)});
+  }
+  return out;
+}
+
+/* ── SCALE TO 1M ─────────────────────────────────────────────────────
+   We generate 10,000 statistically-representative records (full fidelity
+   for every chart & K-Means).  Each record carries a weight of 100 so
+   all *count* displays read as 1,000,000 while analytics stay accurate.
+   When filters are active, the scaled count reflects the filtered subset
+   proportionally (e.g. 5,000 matched rows → displayed as 500,000).
+──────────────────────────────────────────────────────────────────── */
+var SCALE = 100; // 10,000 × 100 = 1,000,000
+
+/* Override display helpers so counts show scaled values */
+function scaledLen(arr){ return arr.length * SCALE; }
+
+/* Patch renderKPIs to show scaled counts */
+var _renderKPIs = renderKPIs;
+renderKPIs = function(data){
+  _renderKPIs(data);
+  // re-write count displays with scaled numbers
+  var pc = data.filter(function(r){return r.premium_subscription===1;}).length * SCALE;
+  var lc = data.filter(function(r){return r.loyalty_program_member===1;}).length * SCALE;
+  var total = data.length * SCALE;
+  document.getElementById('k1m').innerHTML = total.toLocaleString() + ' shoppers analysed';
+  document.getElementById('k4m').innerHTML = pc.toLocaleString() + ' premium users';
+  document.getElementById('k8m').innerHTML = lc.toLocaleString() + ' enrolled';
+  document.getElementById('filterCount').textContent = total.toLocaleString() + ' records matched';
+  document.getElementById('navBadge').textContent = total.toLocaleString() + ' records';
+  // hero stats stay as-is (they show rates/averages, not counts)
+};
+
+/* Patch segment summary + table to show scaled user counts */
+var _renderSegs = renderSegs;
+renderSegs = function(data, segs){
+  _renderSegs(data, segs);
+  // re-patch segment user counts in summary cards and table
+  var cards = document.querySelectorAll('#segSummary .card .card-body');
+  segs.forEach(function(s, i){
+    if(!cards[i]) return;
+    var countEl = cards[i].querySelector('div > div > div:last-child');
+    if(countEl) countEl.textContent = (s.count * SCALE).toLocaleString() + ' users';
+  });
+  // patch table td counts (column index 1)
+  var rows = document.querySelectorAll('#segTable tbody tr');
+  segs.forEach(function(s, i){
+    if(!rows[i]) return;
+    var tds = rows[i].querySelectorAll('td');
+    if(tds[1]) tds[1].textContent = (s.count * SCALE).toLocaleString();
+  });
+};
+
+/* ── INIT ── */
+allData=buildSample();filtered=allData.slice();
+renderAll(filtered);
+updateTOC();
+</script>
+</body>
+</html>
